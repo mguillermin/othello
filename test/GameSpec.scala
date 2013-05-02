@@ -1,13 +1,9 @@
 import org.scalatest.FunSpec
 import org.scalatest.matchers.MustMatchers
-import othello.{Black, White, Board}
+import othello.{Pos, Black, White, Board}
 
 /**
- * Created with IntelliJ IDEA.
- * User: mguillermin
- * Date: 01/05/13
- * Time: 13:17
- * To change this template use File | Settings | File Templates.
+ * Specifications of the Game
  */
 class GameSpec extends FunSpec with MustMatchers {
   describe("A newly created Board") {
@@ -18,19 +14,13 @@ class GameSpec extends FunSpec with MustMatchers {
 
     it("should allow to insert a new color") {
       val board = Board()
-      val updatedBoard = board.update(2, 3, Some(White))
-      updatedBoard.rows(2)(3) must be(Some(White))
-    }
-
-    it("should allow to remove a color") {
-      val board = Board().update(2, 3, Some(White))
-      val updatedBoard = board.update(2, 3, None)
-      updatedBoard.isEmpty must be(true)
+      val updatedBoard = board.update(Pos(2, 3), White)
+      updatedBoard.get(Pos(2,3)) must be(Some(White))
     }
 
     it("should be equal to a board with the same colors at the same positions") {
-      val board = Board().update(2, 3, Some(White)).update(4, 5, Some(Black))
-      val board2 = Board().update(2, 3, Some(White)).update(4, 5, Some(Black))
+      val board = Board().update(Pos(2, 3), White).update(Pos(4, 5), Black)
+      val board2 = Board().update(Pos(2, 3), White).update(Pos(4, 5), Black)
       board2 must be equals(board)
     }
   }
@@ -40,6 +30,38 @@ class GameSpec extends FunSpec with MustMatchers {
       val board = Board.initialState
       board.count(White) must be(2)
       board.count(Black) must be(2)
+    }
+  }
+
+  describe("fromString constructor") {
+    it("should correctly parse an empty board string") {
+      val b =
+        """--------
+          |--------
+          |--------
+          |--------
+          |--------
+          |--------
+          |--------
+          |--------
+        """.stripMargin
+      Board.formString(b).isEmpty must be(true)
+    }
+    it("should correctly parse a board string with some colors") {
+      val b =
+        """--------
+          |--------
+          |--------
+          |-W------
+          |--------
+          |------B-
+          |--------
+          |--------
+        """.stripMargin
+      val board = Board.formString(b)
+      board.isEmpty must be(false)
+      board.get(Pos(3, 1)) must be(Some(White))
+      board.get(Pos(5, 6)) must be(Some(Black))
     }
   }
 
