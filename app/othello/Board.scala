@@ -77,21 +77,24 @@ case class Board(repr: Map[Pos, Color] = Map()) {
     }).mkString("\n")
   }
 
-  def possibleMoves(color: Color) =
-    for {
-      i <- 0 to 7
-      j <- 0 to 7
-      winningPositions <- Some(winningPositions(Pos(i,j), color))
-      if (winningPositions.size > 0)
-    } yield (winningPositions.size, Pos(i, j))
+  def possibleMoves(color: Color): Set[(Pos, Set[Pos])] =
+    {
+      for {
+        i <- 0 to 7
+        j <- 0 to 7
+        winningPositions <- Some(winningPositions(Pos(i,j), color))
+        if (winningPositions.size > 0)
+      } yield (Pos(i, j), winningPositions)
+    }.toSet
 
-  def bestMoves(color: Color) = {
+
+  def bestMoves(color: Color): Set[(Pos, Set[Pos])] = {
     val availableMoves = possibleMoves(color)
     if (availableMoves.isEmpty) {
       availableMoves
     } else {
-      val maxScore = availableMoves.map(_._1).max
-      availableMoves.filter { case (score, _) => score == maxScore }
+      val maxScore = availableMoves.map(_._2.size).max
+      availableMoves.filter { case (_, wins) => wins.size == maxScore }
     }
   }
 
@@ -102,6 +105,33 @@ case class Board(repr: Map[Pos, Color] = Map()) {
     } yield winningPos
 
   def winningPositions(pos: Pos, color: Color, dir: Direction): List[Pos] = {
+    val followList = followWithPos(pos, dir)
+    followList match {
+      case (_,None) :: followers => {
+        otherColorsUntilMe(followers, color)
+      }
+      case _ => Nil
+    }
+  }
+
+  def otherColorsUntilMe(followers: List[(Pos, Option[Color])], color: Color): List[Pos] = {
+    // If color is not in the followers list
+    if (!followers.map(_._2).contains(Some(color))) {
+      Nil
+    } else {
+      // Taking all elements of the different color
+      val otherColors = followers.takeWhile(_._2 != Some(color))
+      // If there is some "None" in this list, then it's not a valid
+      if (otherColors.map(_._2).contains(None)) {
+        Nil
+      } else {
+        // We return all the positions
+        otherColors.map(_._1)
+      }
+    }
+  }
+
+  def winningPositionsOld(pos: Pos, color: Color, dir: Direction): List[Pos] = {
     val followList = followWithPos(pos, dir)
     followList match {
       case (_,None) :: followers => {
@@ -150,7 +180,7 @@ object Board {
     Pos(4, 4) -> White
   ))
 
-  def formString(board: String) : Board = Board({
+  def fromString(board: String) : Board = Board({
     val rows = board.split("\n").zipWithIndex
     (
       for {

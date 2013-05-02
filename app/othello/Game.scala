@@ -18,16 +18,15 @@ class Game {
 
   def nextStep() = {
     val b = boards.head
-    val moves = b.bestMoves(nextColor)
+    val moves: Set[(Pos, Set[Pos])] = b.bestMoves(nextColor)
     if (moves.isEmpty) {
       noMoves = noMoves + 1
       boards = b :: boards
       nextColor = nextColor.invert
     } else {
       noMoves = 0
-      val (score, nextPos) = moves(Random.nextInt(moves.size))
-      val winningPositions = b.winningPositions(nextPos, nextColor)
-      val newBoard = winningPositions.foldLeft(b)((board, pos) => board.update(pos, nextColor))
+      val (nextPos, wins) = moves.toVector(Random.nextInt(moves.size))
+      val newBoard = wins.foldLeft(b)((board, pos) => board.update(pos, nextColor))
       boards = newBoard.update(nextPos, nextColor) :: boards
       nextColor = nextColor.invert
     }
