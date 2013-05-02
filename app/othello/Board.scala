@@ -23,8 +23,12 @@ case object Up extends Direction
 case object Down extends Direction
 case object Left extends Direction
 case object Right extends Direction
+case object UpLeft extends Direction
+case object UpRight extends Direction
+case object DownLeft extends Direction
+case object DownRight extends Direction
 object Direction {
-  def all = Seq(Up, Down, Left, Right)
+  def all = Set(Up, Down, Left, Right, UpLeft, UpRight, DownLeft, DownRight)
 }
 
 case class Pos(row: Int, col: Int) {
@@ -33,6 +37,10 @@ case class Pos(row: Int, col: Int) {
     case Down => Pos(row + 1, col)
     case Left => Pos(row, col - 1)
     case Right => Pos(row, col + 1)
+    case UpLeft => Pos(row - 1, col - 1)
+    case UpRight => Pos(row - 1, col + 1)
+    case DownLeft => Pos(row + 1, col - 1)
+    case DownRight => Pos(row + 1, col + 1)
   }
 
   def isValid(): Boolean = (row >= 0 && row <= 7 && col >=0 && col <= 7)
@@ -40,10 +48,8 @@ case class Pos(row: Int, col: Int) {
 
 case class Disc(color: Color, pos: Pos)
 
-case class Board(repr: Set[Disc] = Set()) {
-  def update(disc: Disc): Board = copy(repr = repr + disc)
-
-  def update(pos: Pos, color: Color): Board = update(Disc(color, pos))
+case class Board(repr: Map[Pos, Color] = Map()) {
+  def update(pos: Pos, color: Color): Board = copy(repr = repr.updated(pos, color))
 
   def isColor(pos: Pos, color: Color) =
     get(pos) match {
@@ -53,48 +59,80 @@ case class Board(repr: Set[Disc] = Set()) {
 
   def isEmpty(pos: Pos) = get(pos) == None
 
-  def get(pos: Pos): Option[Color] = repr.find(_.pos == pos).map(_.color)
-
-  def getAll(color: Color) = repr.filter(_.color == color)
+  def get(pos: Pos): Option[Color] = repr.get(pos)
 
   def isEmpty = repr.isEmpty
 
-  def count(color: Color) = repr.count(_.color == color)
+  def count(color: Color) = repr.count{ case (p, c) => c == color }
 
   override def toString = {
     (for (i <- 0 to 7) yield {
       (for (j <- 0 to 7) yield {
-        repr.find(d => d.pos.row == i && d.pos.col == j) match {
-          case Some(Disc(White, _)) => "W"
-          case Some(Disc(Black, _)) => "B"
+        repr.get(Pos(i,j)) match {
+          case Some(White) => "W"
+          case Some(Black) => "B"
           case _ => "-"
         }
       }).mkString(" ")
     }).mkString("\n")
   }
 
-  def posScores(pos: Pos, color: Color) = {
-    Direction.all.map(d => (d, moveScore(pos, color, d))).toMap
-  }
+  def possibleMoves(color: Color) =
+    for {
+      i <- 0 to 7
+      j <- 0 to 7
+      winningPositions <- Some(winningPositions(Pos(i,j), color))
+      if (winningPositions.size > 0)
+    } yield (winningPositions.size, Pos(i, j))
 
-  def moveScore(pos: Pos, color: Color, dir: Direction): Int = {
-    if (pos.isValid() && isEmpty(pos)) {
-      val followList = follow(pos.move(dir), dir)
-      if (followList.isEmpty) {
-        0
-      } else {
-        followList.collect { case Some(c) => c }.span(_ != color)._1.size
-      }
+  def bestMoves(color: Color) = {
+    val availableMoves = possibleMoves(color)
+    if (availableMoves.isEmpty) {
+      availableMoves
     } else {
-      0
+      val maxScore = availableMoves.map(_._1).max
+      availableMoves.filter { case (score, _) => score == maxScore }
     }
   }
+
+  def winningPositions(pos: Pos, color: Color): Set[Pos] =
+    for {
+      dir <- Direction.all
+      winningPos <- winningPositions(pos, color, dir)
+    } yield winningPos
+
+  def winningPositions(pos: Pos, color: Color, dir: Direction): List[Pos] = {
+    val followList = followWithPos(pos, dir)
+    followList match {
+      case (_,None) :: followers => {
+        followers.headOption match {
+          case Some((_,Some(c))) if c != color && followers.exists(_._2 == Some(color)) => {
+            val f2 = followers.takeWhile( _._2 != Some(color))
+            if (f2.exists (_._2 == None)) {
+              Nil
+            } else {
+              f2.map(_._1)
+            }
+          }
+          case _ => Nil
+        }
+      }
+      case _ => Nil
+    }
+  }
+
 
   def follow(pos: Pos, dir: Direction): List[Option[Color]] = {
     if (!pos.isValid())
       Nil
     else
       get(pos) :: follow(pos.move(dir), dir)
+  }
+  def followWithPos(pos: Pos, dir: Direction): List[(Pos, Option[Color])] = {
+    if (!pos.isValid())
+      Nil
+    else
+      (pos, get(pos)) :: followWithPos(pos.move(dir), dir)
   }
 
 
@@ -105,11 +143,11 @@ object Board {
    * Construct a Board with the initial state (2 Blacks / 2 Whites in the center of the board)
    * @return
    */
-  def initialState = Board(Set(
-    Disc(White, Pos(3, 3)),
-    Disc(Black, Pos(3, 4)),
-    Disc(Black, Pos(4, 3)),
-    Disc(White, Pos(4, 4))
+  def initialState = Board(Map(
+    Pos(3, 3) -> White,
+    Pos(3, 4) -> Black,
+    Pos(4, 3) -> Black,
+    Pos(4, 4) -> White
   ))
 
   def formString(board: String) : Board = Board({
@@ -119,7 +157,7 @@ object Board {
         (row, i) <- rows
         (c, j) <- row.zipWithIndex
         color <- Color(c)
-      } yield Disc(color, Pos(i, j))
-    ).toSet[Disc]
+      } yield (Pos(i, j), color)
+    ).toMap
   })
 }
