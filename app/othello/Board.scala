@@ -43,13 +43,15 @@ case class Pos(row: Int, col: Int) {
     case DownRight => Pos(row + 1, col + 1)
   }
 
-  def isValid(): Boolean = (row >= 0 && row <= 7 && col >=0 && col <= 7)
 }
 
 case class Disc(color: Color, pos: Pos)
 
-case class Board(repr: Map[Pos, Color] = Map()) {
+case class Board(rows: Int = 8, cols: Int = 8, repr: Map[Pos, Color] = Map()) {
   def update(pos: Pos, color: Color): Board = copy(repr = repr.updated(pos, color))
+
+  def updateAll(positions: Set[Pos], color: Color): Board =
+    positions.foldLeft(this)((b, pos) => b.update(pos, color))
 
   def isColor(pos: Pos, color: Color) =
     get(pos) match {
@@ -63,11 +65,15 @@ case class Board(repr: Map[Pos, Color] = Map()) {
 
   def isEmpty = repr.isEmpty
 
+  def isFull = repr.size == rows*cols
+
   def count(color: Color) = repr.count{ case (p, c) => c == color }
 
+  def isValid(pos: Pos): Boolean = (pos.row >= 0 && pos.row < rows && pos.col >=0 && pos.col < cols)
+
   override def toString = {
-    (for (i <- 0 to 7) yield {
-      (for (j <- 0 to 7) yield {
+    (for (i <- 0 to rows - 1) yield {
+      (for (j <- 0 to cols - 1) yield {
         repr.get(Pos(i,j)) match {
           case Some(White) => "W"
           case Some(Black) => "B"
@@ -80,8 +86,8 @@ case class Board(repr: Map[Pos, Color] = Map()) {
   def possibleMoves(color: Color): Set[(Pos, Set[Pos])] =
     {
       for {
-        i <- 0 to 7
-        j <- 0 to 7
+        i <- 0 to rows - 1
+        j <- 0 to cols - 1
         winningPositions <- Some(winningPositions(Pos(i,j), color))
         if (winningPositions.size > 0)
       } yield (Pos(i, j), winningPositions)
@@ -153,13 +159,13 @@ case class Board(repr: Map[Pos, Color] = Map()) {
 
 
   def follow(pos: Pos, dir: Direction): List[Option[Color]] = {
-    if (!pos.isValid())
+    if (!isValid(pos))
       Nil
     else
       get(pos) :: follow(pos.move(dir), dir)
   }
   def followWithPos(pos: Pos, dir: Direction): List[(Pos, Option[Color])] = {
-    if (!pos.isValid())
+    if (!isValid(pos))
       Nil
     else
       (pos, get(pos)) :: followWithPos(pos.move(dir), dir)
@@ -173,14 +179,14 @@ object Board {
    * Construct a Board with the initial state (2 Blacks / 2 Whites in the center of the board)
    * @return
    */
-  def initialState = Board(Map(
+  def initialState = Board(repr = Map(
     Pos(3, 3) -> White,
     Pos(3, 4) -> Black,
     Pos(4, 3) -> Black,
     Pos(4, 4) -> White
   ))
 
-  def fromString(board: String) : Board = Board({
+  def fromString(board: String) : Board = Board(repr = {
     val rows = board.split("\n").zipWithIndex
     (
       for {

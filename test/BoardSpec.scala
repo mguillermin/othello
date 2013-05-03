@@ -5,7 +5,7 @@ import othello.{Pos, Black, White, Board}
 /**
  * Specifications of the Game
  */
-class GameSpec extends FunSpec with MustMatchers {
+class BoardSpec extends FunSpec with MustMatchers {
   describe("A newly created Board") {
     it("should be empty") {
       val board = Board()
