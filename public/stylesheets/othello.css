@@ -1,0 +1,12 @@
+svg.board {
+    background-color: green;
+}
+svg circle.white {
+    stroke: black;
+    fill: white;
+}
+
+svg circle.black {
+    stroke: black;
+    fill: black;
+}
