@@ -5,9 +5,11 @@ sealed trait Color {
 }
 case object Black extends Color {
   def invert = White
+  override def toString = "Black"
 }
 case object White extends Color {
   def invert = Black
+  override def toString = "White"
 }
 
 object Color {
@@ -111,7 +113,7 @@ case class Board(rows: Int = 8, cols: Int = 8, repr: Map[Pos, Color] = Map()) {
     } yield winningPos
 
   def winningPositions(pos: Pos, color: Color, dir: Direction): List[Pos] = {
-    val followList = followWithPos(pos, dir)
+    val followList = sequenceWithPos(pos, dir)
     followList match {
       case (_,None) :: followers => {
         otherColorsUntilMe(followers, color)
@@ -138,7 +140,7 @@ case class Board(rows: Int = 8, cols: Int = 8, repr: Map[Pos, Color] = Map()) {
   }
 
   def winningPositionsOld(pos: Pos, color: Color, dir: Direction): List[Pos] = {
-    val followList = followWithPos(pos, dir)
+    val followList = sequenceWithPos(pos, dir)
     followList match {
       case (_,None) :: followers => {
         followers.headOption match {
@@ -157,18 +159,11 @@ case class Board(rows: Int = 8, cols: Int = 8, repr: Map[Pos, Color] = Map()) {
     }
   }
 
-
-  def follow(pos: Pos, dir: Direction): List[Option[Color]] = {
+  def sequenceWithPos(pos: Pos, dir: Direction): List[(Pos, Option[Color])] = {
     if (!isValid(pos))
       Nil
     else
-      get(pos) :: follow(pos.move(dir), dir)
-  }
-  def followWithPos(pos: Pos, dir: Direction): List[(Pos, Option[Color])] = {
-    if (!isValid(pos))
-      Nil
-    else
-      (pos, get(pos)) :: followWithPos(pos.move(dir), dir)
+      (pos, get(pos)) :: sequenceWithPos(pos.move(dir), dir)
   }
 
 
