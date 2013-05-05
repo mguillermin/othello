@@ -1,4 +1,4 @@
-@(title: String = "Othello")(content: Html)
+@(title: String = "Othello", moreJs: Html = Html(""))(content: Html)
 
 <!DOCTYPE html>
 
@@ -9,9 +9,11 @@
         <link rel="shortcut icon" type="image/png" href="@routes.Assets.at("images/favicon.png")">
         <script src="@routes.Assets.at("javascripts/jquery-1.9.0.min.js")" type="text/javascript"></script>
         <script src="@routes.Assets.at("javascripts/d3.v3/d3.v3.min.js")" type="text/javascript"></script>
-        <script src="@routes.Assets.at("javascripts/othello.js")" type="text/javascript"></script>
     </head>
     <body>
         @content
+        <script src="@routes.Assets.at("javascripts/othello.js")" type="text/javascript"></script>
+        <script src="@routes.Application.jsRoutes" type="text/javascript"></script>
+        @moreJs
     </body>
 </html>

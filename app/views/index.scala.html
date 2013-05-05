@@ -1,8 +1,41 @@
 @()
 
-@main("Othello") {
+@moreJs() = {
     <script type="text/javascript">
-        othello();
+        var dataset, nextColor;
+
+        var onPlay = function(d) {
+            jsRoutes.controllers.Application.move().ajax({
+                data: {
+                    row: d[0],
+                    col: d[1],
+                    color: d[2]
+                },
+                success: function(game) {
+                    dataset = game.board;
+                    nextColor = game.nextColor;
+                    othello.updateData(dataset);
+                }
+            });
+            //TODO: call Webservice (or websocket) to play and get the updated board
+            //dataset.push([d[0],d[1], nextColor]);
+            //nextColor = (nextColor == "White") ? "Black" : "White";
+            //othello.updateData(dataset);
+        }
+
+
+        jsRoutes.controllers.Application.game().ajax({
+            success: function(game){
+                dataset = game.board;
+                nextColor = game.nextColor;
+                othello.init(dataset, onPlay);
+            }
+        });
+
+
     </script>
+}
+
+@main("Othello", moreJs()) {
 
 }

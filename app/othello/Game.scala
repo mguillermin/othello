@@ -67,10 +67,7 @@ object Game {
 
   implicit val posColorWrites: Writes[(Pos, Color)] = new Writes[(Pos, Color)] {
     def writes(o: (Pos, Color)) = o match {
-      case (pos, color) => toJson(Map(
-        "pos" -> toJson(pos),
-        "color" -> toJson(color)
-      ))
+      case (pos, color) => toJson(Seq(toJson(pos.row), toJson(pos.col), toJson(color)))
     }
   }
 

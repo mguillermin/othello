@@ -1,12 +1,16 @@
 svg.board {
     background-color: green;
 }
-svg circle.white {
+svg circle {
     stroke: black;
+}
+svg circle.white {
     fill: white;
 }
-
 svg circle.black {
-    stroke: black;
     fill: black;
+}
+svg circle.none {
+    fill: transparent;
+    cursor: pointer;
 }
