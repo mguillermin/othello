@@ -9,6 +9,8 @@ GET     /game                       controllers.Application.game
 
 POST    /move                       controllers.Application.move
 
+GET     /ws                         controllers.Application.gameSocket
+
 GET     /routes.js                  controllers.Application.jsRoutes
 
 # Map static resources from the /public folder to the /assets URL path

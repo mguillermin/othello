@@ -1,8 +1,9 @@
 package othello
 
 import scala.util.Random
-import play.api.libs.json.{JsString, JsValue, Writes, Json}
+import play.api.libs.json._
 import Json.toJson
+import play.api.libs.json.JsString
 
 
 /**
@@ -23,12 +24,18 @@ case class Game(board: Board = Board.initialState, nextColor: Color = White) {
     }
   }
 
+  def isMoveValid(pos: Pos): Boolean =
+    !board.winningPositions(pos, nextColor).isEmpty
+
   def play(pos: Pos): Game = {
-    val possibleMoves: Map[Pos, Set[Pos]] = board.possibleMoves(nextColor).toMap
-    val updatedBoard: Board = possibleMoves.get(pos).foldLeft(board){ (b, wins) =>
-      b.update(pos, nextColor).updateAll(wins, nextColor)
+    val wins = board.winningPositions(pos, nextColor)
+    val updatedBoard: Board = board.update(pos, nextColor).updateAll(wins, nextColor)
+    // If there is no possible move for the next color, keep the current color
+    if (updatedBoard.possibleMoves(nextColor.invert).isEmpty) {
+      copy(board = updatedBoard)
+    } else {
+      copy(board = updatedBoard, nextColor = nextColor.invert)
     }
-    copy(board = updatedBoard, nextColor = nextColor.invert)
   }
 
   def score: Map[Color, Int] =
@@ -53,6 +60,10 @@ object Game {
     }
   }
 
+
+  implicit val posReads: Reads[Pos] = new Reads[Pos] {
+    def reads(json: JsValue) = JsSuccess(Pos(json(0).as[Int],json(1).as[Int]))
+  }
 
   implicit val posWrites: Writes[Pos] = new Writes[Pos] {
     def writes(p: Pos) = toJson(Seq(p.row, p.col))
@@ -82,6 +93,7 @@ object Game {
       Json.obj(
         "board" -> toJson(g.board),
         "nextColor" -> toJson(g.nextColor),
+        "possibleMoves" -> toJson(g.board.possibleMoves(g.nextColor).map(m => toJson(m._1) )),
         "score" -> toJson(g.score.map { case (color, score) => Map(color.toString ->toJson(score))})
       )
     }

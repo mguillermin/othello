@@ -4,8 +4,9 @@ import play.api._
 import play.api.mvc._
 import play.api.data._
 import play.api.data.Forms._
-import othello.{Pos, Color, Game}
-import play.api.libs.json.Json
+import othello.{GameRoom, Pos, Color, Game}
+import play.api.libs.json.{JsValue, Json}
+import play.api.libs.iteratee.Iteratee
 
 object Application extends Controller {
 
@@ -29,19 +30,24 @@ object Application extends Controller {
   )
 
   def move = Action { implicit request =>
-    //TODO: Check if there is possible moves for this color
-    // and check if the current move is possible
-    // if this is not the case, return an Invalid Response
     moveForm.bindFromRequest.fold({
       formWithErrors =>
         BadRequest("Error")
       },{
       value =>
         val (row, col, color) = value
-        g = g.play(Pos(row, col))
-        Ok(Json.toJson(g))
+        if (g.isMoveValid(Pos(row, col))) {
+          g = g.play(Pos(row, col))
+          Ok(Json.toJson(g))
+        } else {
+          BadRequest("Invalid move")
+        }
       }
     )
+  }
+
+  def gameSocket = WebSocket.async[JsValue] { request =>
+    GameRoom.join()
   }
 
   def jsRoutes = Action { implicit request =>

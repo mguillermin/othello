@@ -14,7 +14,7 @@
                 success: function(game) {
                     dataset = game.board;
                     nextColor = game.nextColor;
-                    othello.updateData(dataset);
+                    othello.updateData(dataset, game.possibleMoves);
                 }
             });
             //TODO: call Webservice (or websocket) to play and get the updated board
@@ -28,7 +28,7 @@
             success: function(game){
                 dataset = game.board;
                 nextColor = game.nextColor;
-                othello.init(dataset, onPlay);
+                othello.init(dataset, game.possibleMoves, onPlay);
             }
         });
 
