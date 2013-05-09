@@ -10,7 +10,15 @@ svg circle.white {
 svg circle.black {
     fill: black;
 }
-svg circle.none {
-    fill: transparent;
+svg circle.possible {
+    fill: lightgray;
     cursor: pointer;
+}
+svg circle.none {
+    stroke: none;
+    fill: transparent;
+}
+
+svg line.grid {
+    stroke: white;
 }
