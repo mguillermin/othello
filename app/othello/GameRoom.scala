@@ -12,51 +12,72 @@ import play.api.libs.json.Json.toJson
 import play.api.libs.iteratee.{Concurrent, Enumerator, Iteratee}
 import play.api.libs.concurrent.Akka
 import akka.actor.{ActorRef, Actor, Props}
-import akka.util.Timeout
-import akka.pattern.ask
-import java.util.UUID
 import play.api.libs.iteratee.Concurrent.Channel
+import scala.util.Random
 
-class GameRoom extends Actor {
-  var games = Map[String, Game]()
-  var channels = Map[String, Channel[JsValue]]()
+trait Player
 
+case class HumanPlayer(color: Color, channel: Channel[JsValue], controller: ActorRef) extends Player with Actor {
   def receive = {
-    case Join => {
-      val id = UUID.randomUUID().toString
-      games = games + (id -> Game())
-      val (enumerator, channel) = Concurrent.broadcast[JsValue]
-      channels = channels + (id -> channel)
-      sender ! Connected(id, enumerator)
-      channels(id).push(toJson(games(id)))
+    case GameUpdated(game) => {
+      channel.push(toJson(game))
     }
-    case Move(id, value) => {
+    case UserEvent(value) => {
       Json.fromJson[Pos](value).map { pos =>
-        games = games.updated(id, games(id).play(pos))
-        channels(id).push(toJson(games(id)))
+        controller ! PlayPos(color, pos)
       }
     }
   }
 }
 
-object GameRoom {
-  implicit val timeout = Timeout(1 seconds)
-  lazy val gameActor: ActorRef = Akka.system.actorOf(Props[GameRoom])
+object HumanPlayer {
+  def init(color: Color, controller: ActorRef): (ActorRef, Iteratee[JsValue,_], Enumerator[JsValue]) = {
+    val (enumerator, channel) = Concurrent.broadcast[JsValue]
+    val humanPlayer = Akka.system.actorOf(Props{new HumanPlayer(White, channel, controller)});
+    val iteratee = Iteratee.foreach[JsValue]{ value =>
+      humanPlayer ! UserEvent(value)
+    }
+    (humanPlayer, iteratee, enumerator)
+  }
+}
 
-  def join(): Future[(Iteratee[JsValue,_], Enumerator[JsValue])] = {
-    (gameActor ? Join).map {
-      case Connected(id, enumerator) =>
-        val iteratee = Iteratee.foreach[JsValue] { event =>
-          gameActor ! Move(id, event)
-        }.mapDone { _ =>
-          gameActor ! Quit(id)
+case class BotPlayer(color: Color, controller: ActorRef, delay: FiniteDuration = 1 seconds) extends Player with Actor {
+  def receive = {
+    case GameUpdated(game) => {
+      if (game.nextColor == color) {
+        val moves = game.board.possibleMoves(color).toVector
+        if (moves.nonEmpty) {
+          val (randomPos,_) = moves(Random.nextInt(moves.size))
+          context.system.scheduler.scheduleOnce(delay) {
+            controller ! PlayPos(color, randomPos)
+          }
         }
-        (iteratee, enumerator)
+      }
     }
   }
 }
 
-case object Join
-case class Connected(id: String, enumerator: Enumerator[JsValue])
-case class Move(id: String, value: JsValue)
-case class Quit(id: String)
+class GameController(game: Game) extends Actor {
+  var currentGame: Game = game
+  var players = Map[Color, ActorRef]()
+
+  def receive = {
+    case RegisterPlayer(color, player) => {
+      players = players + (color -> player)
+      player ! GameUpdated(currentGame)
+    }
+    case PlayPos(color, pos) => {
+      if (color == currentGame.nextColor && sender == players(color)) {
+        currentGame = currentGame.play(pos)
+        players.values.foreach {
+          _ ! GameUpdated(currentGame)
+        }
+      }
+    }
+  }
+}
+
+case class GameUpdated(game: Game)
+case class RegisterPlayer(color: Color, player: ActorRef)
+case class PlayPos(color: Color, pos: Pos)
+case class UserEvent(value: JsValue)

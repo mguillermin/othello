@@ -4,34 +4,22 @@
     <script type="text/javascript">
         var dataset, nextColor;
 
+        var WS = window['MozWebSocket'] ? MozWebSocket : WebSocket;
+        var gameSocket = new WS(jsRoutes.controllers.Application.gameSocket().webSocketURL());
+
         var onPlay = function(d) {
-            jsRoutes.controllers.Application.move().ajax({
-                data: {
-                    row: d[0],
-                    col: d[1],
-                    color: d[2]
-                },
-                success: function(game) {
-                    dataset = game.board;
-                    nextColor = game.nextColor;
-                    othello.updateData(dataset, game.possibleMoves);
-                }
-            });
-            //TODO: call Webservice (or websocket) to play and get the updated board
-            //dataset.push([d[0],d[1], nextColor]);
-            //nextColor = (nextColor == "White") ? "Black" : "White";
-            //othello.updateData(dataset);
+            gameSocket.send(JSON.stringify([d[0], d[1]]));
         }
 
+        othello.init(onPlay);
 
-        jsRoutes.controllers.Application.game().ajax({
-            success: function(game){
-                dataset = game.board;
-                nextColor = game.nextColor;
-                othello.init(dataset, game.possibleMoves, onPlay);
-            }
-        });
-
+        gameSocket.onmessage = function(event) {
+            var game = JSON.parse(event.data);
+            console.log(game);
+            dataset = game.board;
+            nextColor = game.nextColor;
+            othello.updateData(dataset, game.possibleMoves);
+        };
 
     </script>
 }

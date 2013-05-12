@@ -4,9 +4,15 @@ import play.api._
 import play.api.mvc._
 import play.api.data._
 import play.api.data.Forms._
-import othello.{GameRoom, Pos, Color, Game}
+import othello._
 import play.api.libs.json.{JsValue, Json}
-import play.api.libs.iteratee.Iteratee
+import play.api.libs.iteratee.{Concurrent, Iteratee}
+import othello.Pos
+import play.api.libs.concurrent.Akka
+import akka.actor.Props
+import play.api.Play.current
+import play.api.libs.concurrent.Execution.Implicits._
+
 
 object Application extends Controller {
 
@@ -46,14 +52,22 @@ object Application extends Controller {
     )
   }
 
-  def gameSocket = WebSocket.async[JsValue] { request =>
-    GameRoom.join()
+  def gameSocket = WebSocket.using[JsValue] { request =>
+    val controller = Akka.system.actorOf(Props { new GameController(Game()) } )
+    val botPlayer = Akka.system.actorOf(Props { new BotPlayer(Black, controller) } )
+    val (humanPlayer, iteratee, enumerator) = HumanPlayer.init(White, controller)
+
+    controller ! RegisterPlayer(White, humanPlayer)
+    controller ! RegisterPlayer(Black, botPlayer)
+
+    (iteratee, enumerator)
   }
 
   def jsRoutes = Action { implicit request =>
     Ok(Routes.javascriptRouter("jsRoutes")(
       controllers.routes.javascript.Application.game,
-      controllers.routes.javascript.Application.move
+      controllers.routes.javascript.Application.move,
+      controllers.routes.javascript.Application.gameSocket
     )).as("text/javascript")
   }
 }

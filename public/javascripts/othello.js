@@ -43,7 +43,7 @@ var othello = (function(){
         .domain([0,8])
         .range([0, h]);
 
-    var init = function(dataset, possibleMoves, playCb) {
+    var init = function(playCb) {
         onPlayCallback = playCb;
         svg = d3.select("body").append("svg")
             .attr("class", "board")
@@ -57,7 +57,6 @@ var othello = (function(){
                 .attr("y1", yScale(i)).attr("y2", yScale(i))
                 .attr("class", "grid");
         }
-        updateData(dataset, possibleMoves);
     }
 
     var updateData = function(dataset, possibleMoves) {
