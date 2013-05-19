@@ -1,0 +1,11 @@
+@(gameInfos: Map[String, othello.GameInfo])
+
+<ul>
+@for((id, gameInfo) <- gameInfos) {
+    <li><a href="@routes.Games.show(id)">@id - @gameInfo.created.format("dd/MM/YYYY - HH:mm:ss")</a></li>
+}
+</ul>
+
+@helper.form(routes.Games.create()) {
+    <input type="submit" value="Create" />
+}

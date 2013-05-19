@@ -1,0 +1,35 @@
+@(id: String)
+
+    @moreJs() = {
+        <script type="text/javascript">
+            var dataset, nextColor;
+            var gameId = "@id";
+
+            var WS = window['MozWebSocket'] ? MozWebSocket : WebSocket;
+            var gameSocket = new WS(jsRoutes.controllers.Games.playerSocket(gameId).webSocketURL());
+
+            var onPlay = function(d) {
+                gameSocket.send(JSON.stringify([d[0], d[1]]));
+            }
+
+            othello.init("#board", onPlay);
+
+            gameSocket.onmessage = function(event) {
+                var game = JSON.parse(event.data);
+                console.log(game);
+                dataset = game.board;
+                nextColor = game.nextColor;
+                othello.updateData(dataset, game.possibleMoves);
+            };
+
+        </script>
+    }
+
+@main("Othello", moreJs()) {
+    <div id="board"></div>
+    <div id="controls">
+        @helper.form(action=routes.Games.addBot(id)) {
+            <input type="submit" value="Add bot" />
+        }
+    </div>
+}

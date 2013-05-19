@@ -43,9 +43,9 @@ var othello = (function(){
         .domain([0,8])
         .range([0, h]);
 
-    var init = function(playCb) {
+    var init = function(container, playCb) {
         onPlayCallback = playCb;
-        svg = d3.select("body").append("svg")
+        svg = d3.select(container).append("svg")
             .attr("class", "board")
             .attr("width", w)
             .attr("height", h);

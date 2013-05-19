@@ -5,13 +5,16 @@
 # Home page
 GET     /                           controllers.Application.index
 
-GET     /game                       controllers.Application.game
-
-POST    /move                       controllers.Application.move
-
-GET     /ws                         controllers.Application.gameSocket
-
 GET     /routes.js                  controllers.Application.jsRoutes
+
+GET     /games                      controllers.Games.index
+POST    /games/create               controllers.Games.create
+GET     /games/:id                  controllers.Games.show(id: String)
+GET     /games/listenerSocket/:id   controllers.Games.listenerSocket(id: String)
+GET     /games/playerSocket/:id     controllers.Games.playerSocket(id: String)
+POST    /games/addBot/:id           controllers.Games.addBot(id: String)
+
+
 
 # Map static resources from the /public folder to the /assets URL path
 GET     /assets/*file               controllers.Assets.at(path="/public", file)
