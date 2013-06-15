@@ -1,4 +1,5 @@
-This is your new Play 2.1 application
-=====================================
+Othello
+=======
 
-This file will be packaged with your application, when using `play dist`.
+A simple Othello game built with Play2 / Scala / Akka and using Websockets for browser/server communication
+
